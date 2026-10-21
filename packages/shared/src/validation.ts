@@ -63,6 +63,26 @@ export const CreateTaskViaTokenSchema = z.object({
   title: z.string().min(1).max(MAX_ITEM_TEXT_LENGTH),
 });
 
+// Update a task assigned to the caller (PATCH /api/integration/tasks/:taskId).
+// SP-facing names for the item fields: `title` → text, `scheduledAt` → remindAt
+// (same ISO-with-offset rule as UpdateItemSchema; null clears it).
+export const UpdateTaskViaTokenSchema = z
+  .object({
+    done: z.boolean().optional(),
+    // Stored verbatim like POST's title (SP verifies the echo); only blank is
+    // rejected.
+    title: z
+      .string()
+      .min(1)
+      .max(MAX_ITEM_TEXT_LENGTH)
+      .refine((s) => s.trim() !== '', 'Title must not be blank')
+      .optional(),
+    scheduledAt: z.string().datetime({ offset: true }).nullable().optional(),
+  })
+  .refine((input) => Object.values(input).some((value) => value !== undefined), {
+    message: 'At least one of done, title, scheduledAt must be provided',
+  });
+
 export const RequestCreationCodeSchema = z.object({
   email: z.string().email().max(255),
 });
